@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 import openai
 import requests
 import os
@@ -8,6 +8,22 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 app = FastAPI()
+
+@app.websocket("/chatbot")
+async def chatbot_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    
+    # 챗봇 시작 메시지 전송
+    await websocket.send_text("안녕하세요! 학습 방법을 추천해드릴 AI 챗봇입니다.")
+    await websocket.send_text("일일 학습 시간은 얼마나 되나요? (예: 2시간)")
+
+    try:
+        while True:
+            user_input = await websocket.receive_text()
+            response = f"입력하신 값: {user_input} (추천을 생성하는 로직을 여기에 추가하세요)"
+            await websocket.send_text(response)
+    except WebSocketDisconnect:
+        print("클라이언트 연결 종료됨")
 
 
 @app.get("/")
