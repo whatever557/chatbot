@@ -101,3 +101,4 @@ def get_recommendation(daily_study_time: str, weaknesses: str, preferred_media: 
 def get_learning_resources(query: str):
     resources = search_learning_resources(query)
     return {"resources": resources}
+
