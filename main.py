@@ -1,5 +1,4 @@
 import openai
-import requests
 import os
 from dotenv import load_dotenv
 
@@ -17,8 +16,8 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 openai_api_calls = 0
 max_openai_calls = 3  # OpenAI 하루 최대 호출 수
 
-# OpenAI 호출 함수
-def generate_recommendation(daily_study_time, weaknesses, preferred_media, subject):
+# 학습 방법 추천 함수
+def generate_study_recommendation(daily_study_time, weaknesses, preferred_media, subject):
     global openai_api_calls
     if openai_api_calls >= max_openai_calls:
         print("OpenAI API 호출 한도를 초과했습니다. 나중에 다시 시도해주세요.")
@@ -40,63 +39,62 @@ def generate_recommendation(daily_study_time, weaknesses, preferred_media, subje
     
     return response.choices[0].message.content.strip()
 
-# Google Custom Search 최적화 함수
-def search_learning_resources(query):
-    search_url = f"https://www.googleapis.com/customsearch/v1"
-    params = {
-        "key": GOOGLE_CSE_API_KEY,
-        "cx": GOOGLE_CSE_ID,
-        "q": query,
-        "siteSearch": "scholar.google.com|khanacademy.org|coursera.org|edx.org|ted.com",
-        "num": 5
+# 과제 제작 툴 추천 함수
+def generate_assignment_tool_recommendation(subject):
+    tools = {
+        "1": {"수학": "GeoGebra, Desmos, Wolfram Alpha, Mathway (한국어 지원)"},
+        "2": {"영어": "Grammarly, Hemingway Editor, QuillBot, Papago 번역"},
+        "3": {"과학": "PhET Simulations, Labster, Wolfram Alpha, K-MOOC (한국 온라인 강의)"},
+        "4": {"프로그래밍": "Replit, Jupyter Notebook, Visual Studio Code, 코드잇 (한국어)"},
+        "5": {"디자인": "Canva, Adobe Creative Cloud, Figma, 미리캔버스 (한국어)"},
     }
-
-    response = requests.get(search_url, params=params)
-    
-    if response.status_code != 200:
-        print(f"Google 검색 API 호출 실패: {response.status_code}")
-        return []
-
-    results = response.json()
-    resources = []
-    
-    if 'items' in results:
-        for item in results['items']:
-            resources.append({
-                'title': item.get('title', 'No title available'),
-                'link': item.get('link', 'No link available'),
-                'snippet': item.get('snippet', 'No description available')
-            })
-    
-    return resources
+    return tools.get(subject, {"기본 추천": "Google Docs, Notion, Trello, 네이버 메모"})
 
 # 사용자 입력 함수
-def get_learning_habits():
-    print("안녕하세요! 학습 방법을 추천해드릴 AI 챗봇입니다.")
-    daily_study_time = input("일일 학습 시간은 얼마나 되나요? (예: 2시간) ")
-    weaknesses = input("학습 중 어떤 부분이 가장 어렵나요? (예: 집중력, 암기력) ")
-    preferred_media = input("선호하는 학습 매체는 무엇인가요? (예: 동영상, 책, 온라인 강의) ")
-    subject = input("학습할 과목은 무엇인가요? (예: 수학, 영어) ")
-
-    return daily_study_time, weaknesses, preferred_media, subject
+def get_user_choice():
+    print("안녕하세요! 원하는 추천 서비스를 선택하세요.")
+    print("1. 학습 방법 추천 (개인 맞춤형 학습 전략 제공)")
+    print("2. 과제 제작 툴 추천 (과목별 유용한 도구 제공)")
+    print("3. 추천 서비스 종료")
+    choice = input("번호를 입력하세요 (1, 2, 3): ")
+    return choice
 
 # 메인 실행 함수
 def main():
-    daily_study_time, weaknesses, preferred_media, subject = get_learning_habits()
-    
-    recommendation = generate_recommendation(daily_study_time, weaknesses, preferred_media, subject)
-    if recommendation:
-        print(f"\n추천된 학습 방법: {recommendation}")
+    while True:
+        choice = get_user_choice()
         
-        search_query = f"{recommendation} 학습법 OR 강의 OR 공식 문서"
-        resources = search_learning_resources(search_query)
+        if choice == "1":
+            daily_study_time = input("📚 일일 학습 시간은 얼마나 되나요? (예: 2시간) ")
+            weaknesses = input("🤔 학습 중 가장 어려운 부분은 무엇인가요? (예: 집중력, 암기력) ")
+            preferred_media = input("🎥 선호하는 학습 매체는 무엇인가요? (예: 동영상, 책, 온라인 강의) ")
+            subject = input("📖 학습할 과목은 무엇인가요? (예: 수학, 영어) ")
+            
+            recommendation = generate_study_recommendation(daily_study_time, weaknesses, preferred_media, subject)
+            if recommendation:
+                print(f"\n📖 추천된 학습 방법:\n{recommendation}")
+            else:
+                print("추천이 생성되지 않았습니다.")
         
-        print("\n📚 관련 학습 자료:")
-        for res in resources:
-            print(f"- {res['title']}\n  링크: {res['link']}\n  설명: {res['snippet']}\n")
-
-    else:
-        print("추천이 생성되지 않았습니다.")
+        elif choice == "2":
+            print("🛠️ 과제 제작 도구 추천을 받을 과목을 선택하세요:")
+            print("1. 수학")
+            print("2. 영어")
+            print("3. 과학")
+            print("4. 프로그래밍")
+            print("5. 디자인")
+            subject = input("번호를 입력하세요 (1-5): ")
+            tools = generate_assignment_tool_recommendation(subject)
+            print("\n🛠️ 추천된 과제 제작 도구:")
+            for category, tool_list in tools.items():
+                print(f"- {category}: {tool_list}")
+        
+        elif choice == "3":
+            print("🎉 추천 서비스를 종료합니다. 이용해 주셔서 감사합니다!")
+            break
+        
+        else:
+            print("⚠️ 올바른 번호를 입력해주세요.")
 
 if __name__ == "__main__":
     main()
